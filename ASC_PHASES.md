@@ -13,6 +13,7 @@ _Before writing a single line of app code, get your infrastructure in place._
 **Step 0.3 — Slack App** 🔧 _Outside code_ Create a new Slack App at api.slack.com/apps. Enable Bot Token Scopes: `chat:write`, `channels:read`, `users:read`. Enable Interactivity (for quick-action buttons) and set your Request URL to your backend's `/webhooks/slack` endpoint. Save your `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`.
 
 **Step 0.4 — Email ingestion service** 🔧 _Outside code_ Use either Resend (resend.com) or SendGrid with Inbound Parse. Configure your support@ domain so inbound emails POST their parsed body/attachments to your `/webhooks/email` endpoint as JSON.
+<anything>@dorouzenea.resend.app
 
 **Step 0.5 — File storage** 🔧 _Outside code_ Enable Supabase Storage and create a bucket called `attachments`. Set an RLS policy that only your service role can upload. This replaces the AWS S3 reference in the PRD for simplicity.
 

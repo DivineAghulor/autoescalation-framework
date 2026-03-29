@@ -1,8 +1,8 @@
-const express = require('express');
-const { supabase } = require('../index');
-const { classifyIssue, handleIngestionFailure } = require('../services/aiService');
-const { sendIssueAlert } = require('../services/slackService');
-const multer = require('multer');
+import express from 'express';
+import { supabase } from '../index.js';
+import { classifyIssue, handleIngestionFailure } from '../services/aiService.js';
+import { sendIssueAlert } from '../services/slackService.js';
+import multer from 'multer';
 
 const router = express.Router();
 
@@ -172,4 +172,4 @@ router.patch('/:id/timer', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

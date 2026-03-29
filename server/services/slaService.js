@@ -1,10 +1,10 @@
-const { supabase } = require('../index');
-const { replyToIssueThread } = require('./slackService');
+import { supabase } from '../index.js';
+import { replyToIssueThread } from './slackService.js';
 
 /**
  * Checks for SLA breaches and escalates issues
  */
-async function checkSLABreaches() {
+export async function checkSLABreaches() {
     try {
         const now = new Date().toISOString();
 
@@ -58,7 +58,3 @@ async function checkSLABreaches() {
         console.error('Error in checkSLABreaches:', error);
     }
 }
-
-module.exports = {
-    checkSLABreaches
-};

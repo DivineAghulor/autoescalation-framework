@@ -1,8 +1,8 @@
-const express = require('express');
-const crypto = require('crypto');
-const { supabase } = require('../index');
-const { classifyIssue, handleIngestionFailure } = require('../services/aiService');
-const { sendIssueAlert, replyToIssueThread } = require('../services/slackService');
+import express from 'express';
+import crypto from 'crypto';
+import { supabase } from '../index.js';
+import { classifyIssue, handleIngestionFailure } from '../services/aiService.js';
+import { sendIssueAlert, replyToIssueThread } from '../services/slackService.js';
 
 const router = express.Router();
 
@@ -291,4 +291,4 @@ async function handleMarkResolved(issueId) {
     await replyToIssueThread(issueId, '✅ Issue marked as resolved!');
 }
 
-module.exports = router;
+export default router;

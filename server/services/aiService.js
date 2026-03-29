@@ -1,4 +1,4 @@
-const { genAI, supabase } = require('../index');
+import { genAI, supabase } from '../index.js';
 
 /**
  * Classifies an issue using Google Gemini AI
@@ -6,7 +6,7 @@ const { genAI, supabase } = require('../index');
  * @param {string[]} imageUrls - Array of image URLs (if any)
  * @returns {Promise<Object>} - Classification result with team, feature, severity, title, confidence
  */
-async function classifyIssue(text, imageUrls = []) {
+export async function classifyIssue(text, imageUrls = []) {
     try {
         // Get reference data for prompt
         const { data: teams } = await supabase.from('teams').select('name');
@@ -63,7 +63,7 @@ Respond only with valid JSON, no additional text.
  * @param {Object} rawPayload - The raw payload that failed processing
  * @param {string} errorMessage - The error message
  */
-async function handleIngestionFailure(rawPayload, errorMessage) {
+export async function handleIngestionFailure(rawPayload, errorMessage) {
     try {
         await supabase.from('ai_ingestion_failures').insert({
             raw_payload: rawPayload,
@@ -74,8 +74,3 @@ async function handleIngestionFailure(rawPayload, errorMessage) {
         console.error('Error storing ingestion failure:', error);
     }
 }
-
-module.exports = {
-    classifyIssue,
-    handleIngestionFailure
-};

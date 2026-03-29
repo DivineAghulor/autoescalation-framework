@@ -1,10 +1,10 @@
-const { slack, supabase } = require('../index');
+import { slack, supabase } from '../index.js';
 
 /**
  * Sends an issue alert to the appropriate Slack channel
  * @param {Object} issue - The issue object with all details
  */
-async function sendIssueAlert(issue) {
+export async function sendIssueAlert(issue) {
     try {
         // Get team details
         const { data: team } = await supabase
@@ -131,7 +131,7 @@ async function sendIssueAlert(issue) {
  * @param {string} issueId - The issue ID
  * @param {string} message - The message to send
  */
-async function replyToIssueThread(issueId, message) {
+export async function replyToIssueThread(issueId, message) {
     try {
         const { data: issue } = await supabase
             .from('issues')
@@ -161,7 +161,7 @@ async function replyToIssueThread(issueId, message) {
  * @param {Object} issue - The issue object
  * @returns {string} - 'GREEN', 'YELLOW', or 'RED'
  */
-function getSLAStatus(issue) {
+export function getSLAStatus(issue) {
     if (!issue.resolution_deadline) return 'GREEN';
 
     const now = new Date();
@@ -175,9 +175,3 @@ function getSLAStatus(issue) {
     if (remainingPercent > 0.1) return 'YELLOW';
     return 'RED';
 }
-
-module.exports = {
-    sendIssueAlert,
-    replyToIssueThread,
-    getSLAStatus
-};
