@@ -17,9 +17,9 @@ router.post('/test', async (req, res) => {
         console.log('Received test email webhook:');
         console.log('Body:', req.body);
 
-        const { message_id } = req.body.data || {};
+        const { email_id } = req.body.data || {};
 
-        const { data, error } = await resend.emails.receiving.get( message_id );
+        const { data, error } = await resend.emails.receiving.get( email_id );
 
         if (error) {
             console.error('Error fetching email details from Resend:', error);
