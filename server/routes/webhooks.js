@@ -10,6 +10,22 @@ const router = express.Router();
  * POST /webhooks/email
  * Email webhook for inbound support emails
  */
+router.post('/test', async (req, res) => {
+    try {
+        const { from, subject, text, html, attachments } = req.body;
+
+        console.log('Received test email webhook:');
+        console.log('From:', from);
+        console.log('Subject:', subject);
+        console.log('Text:', text);
+        console.log('HTML:', html);
+        console.log('Attachments:', attachments);
+    } catch (error) {
+        console.error('Error processing test email webhook:', error);
+    }
+})
+
+
 router.post('/email', async (req, res) => {
     try {
         // Verify webhook signature (implement based on your email provider)
