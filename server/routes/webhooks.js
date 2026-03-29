@@ -12,6 +12,9 @@ const router = express.Router();
  */
 router.post('/test', async (req, res) => {
     try {
+        console.log('Received test email webhook:');
+        console.log('Body:', req.body);
+        
         const { from, subject, text, html, attachments } = req.body;
 
         console.log('Received test email webhook:');
