@@ -31,6 +31,12 @@ router.post('/email', async (req, res) => {
         // Verify webhook signature (implement based on your email provider)
         // For Resend: check req.headers['x-resend-signature']
         // For SendGrid: check req.headers['x-twilio-email-event-webhook-signature']
+        if (req.headers['x-resend-signature']) {
+            // Implement Resend signature verification
+            if (req.headers['x-resend-signature'] !== process.env.RESEND_WEBHOOK_SECRET) {
+                return res.status(401).json({ error: 'Invalid signature' });
+            }
+        }
 
         const { from, subject, text, html, attachments } = req.body;
 

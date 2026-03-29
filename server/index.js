@@ -33,6 +33,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Raw body middleware for webhook signature verification
 app.use('/webhooks/slack', express.raw({ type: 'application/x-www-form-urlencoded', limit: '10mb' }));
+app.set('trust proxy', 1);
 
 // Rate limiting
 const limiter = rateLimit({
