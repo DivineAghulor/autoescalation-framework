@@ -3,9 +3,11 @@ import crypto from 'crypto';
 import { supabase } from '../index.js';
 import { classifyIssue, handleIngestionFailure } from '../services/aiService.js';
 import { sendIssueAlert, replyToIssueThread } from '../services/slackService.js';
+import { Resend } from 'resend';
 
 const router = express.Router();
 
+const resend = new Resend(process.env.RESEND_API_KEY);
 /**
  * POST /webhooks/email
  * Email webhook for inbound support emails
@@ -14,15 +16,17 @@ router.post('/test', async (req, res) => {
     try {
         console.log('Received test email webhook:');
         console.log('Body:', req.body);
-        
-        const { from, subject, text, html, attachments } = req.body;
 
-        console.log('Received test email webhook:');
-        console.log('From:', from);
-        console.log('Subject:', subject);
-        console.log('Text:', text);
-        console.log('HTML:', html);
-        console.log('Attachments:', attachments);
+        const { message_id } = req.body.data || {};
+
+        const { data, error } = await resend.emails.receiving.get( message_id );
+
+        if (error) {
+            console.error('Error fetching email details from Resend:', error);
+            return res.status(500).json({ error: 'Failed to fetch email details' });
+        }
+        console.log('Fetched email details from Resend:', data);
+
     } catch (error) {
         console.error('Error processing test email webhook:', error);
     }
