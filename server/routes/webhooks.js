@@ -45,14 +45,23 @@ router.post('/email', async (req, res) => {
             }
         }
 
-        const { from, subject, text, html, attachments } = req.body;
+        const { email_id } = req.body.data || {};
+
+        const { data, error } = await resend.emails.receiving.get( email_id );
+
+        if (error) {
+            console.error('Error fetching email details from Resend:', error);
+            return res.status(500).json({ error: 'Failed to fetch email details' });
+        }
+
+        const { from, subject, text, html, attachments } = data
 
         if (!from || !text) {
             return res.status(400).json({ error: 'Invalid email payload' });
         }
 
         // Extract sender email
-        const senderEmail = from.email || from;
+        const senderEmail = from || from.email;
 
         // Find merchant by email
         const { data: merchant } = await supabase
@@ -69,8 +78,37 @@ router.post('/email', async (req, res) => {
         // Extract images from attachments or inline
         const imageUrls = [];
         if (attachments) {
-            // Process attachments (implementation depends on provider)
-            // For now, assume URLs are provided
+            for (const attachment of attachments) {
+                if (attachment.content_type && attachment.content_type.startsWith('image/')) {
+                    try {
+                        // Download attachment content from Resend
+                        const attachmentData = await resend.attachments.get(attachment.id);
+                        
+                        // Upload to Supabase Storage
+                        const fileName = `${Date.now()}-${attachment.filename}`;
+                        const { data, error } = await supabase.storage
+                            .from('attachments')
+                            .upload(fileName, attachmentData.content, {
+                                contentType: attachment.content_type,
+                                upsert: false
+                            });
+
+                        if (error) {
+                            console.error('Error uploading attachment to storage:', error);
+                            continue;
+                        }
+
+                        // Get public URL
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('attachments')
+                            .getPublicUrl(fileName);
+
+                        imageUrls.push(publicUrl);
+                    } catch (error) {
+                        console.error('Error processing attachment:', error);
+                    }
+                }
+            }
         }
 
         // Classify the issue
