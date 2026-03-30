@@ -1,4 +1,5 @@
 import { genAI, supabase } from '../index.js';
+import { Type } from '@google/genai';
 
 /**
  * Helper function to fetch an image URL and convert it to Gemini's inlineData format
@@ -57,28 +58,27 @@ Analyze the issue and return a JSON classification. Ensure the "feature" you sel
 
         // Define the JSON Schema for guaranteed structural output
         const responseSchema = {
-            type: "object",
+            type: Type.OBJECT,
             properties: {
-                team: { type: "string", description: "One of the available teams" },
-                feature: { type: "string", description: "One of the available features for the selected team" },
-                severity: { type: "string", enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
-                title: { type: "string", description: "A short summary title (max 100 characters)" },
-                confidence: { type: "number", description: "Confidence score from 0.0 to 1.0" }
+                team: { type: Type.STRING, description: "One of the available teams" },
+                feature: { type: Type.STRING, description: "One of the available features for the selected team" },
+                severity: { type: Type.STRING, enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+                title: { type: Type.STRING, description: "A short summary title (max 100 characters)" },
+                confidence: { type: Type.NUMBER, description: "Confidence score from 0.0 to 1.0" }
             },
             required: ["team", "feature", "severity", "title", "confidence"]
         };
 
-        const model = genAI.getGenerativeModel({ 
-            model: 'gemini-1.5-flash',
-            generationConfig: {
+        const response = await genAI.models.generateContent({
+            model: 'gemini-2.5-flash-lite',
+            contents: contents,
+            config: {
                 responseMimeType: "application/json",
-                responseSchema: responseSchema
+                responseJsonSchema: responseSchema
             }
         });
 
-        // Use generateContent with the array of parts
-        const result = await model.generateContent(contents);
-        const responseText = result.response.text();
+        const responseText = response.text;
         
         console.log('AI response:', responseText);
         

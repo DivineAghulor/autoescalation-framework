@@ -5,7 +5,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import cron from 'node-cron';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { WebClient } from '@slack/web-api';
 import multer from 'multer';
 import path from 'path';
@@ -18,7 +18,7 @@ dotenv.config();
 
 // Initialize clients
 export const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-export const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+export const genAI = new GoogleGenAI({});
 export const slack = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 // Initialize Express app
