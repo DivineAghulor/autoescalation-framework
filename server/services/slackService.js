@@ -62,6 +62,10 @@ export async function sendIssueAlert(issue) {
                     },
                     {
                         type: 'mrkdwn',
+                        text: `*Assignee:* ${assigneeMention || 'Unassigned'}` 
+                    },
+                    {
+                        type: 'mrkdwn',
                         text: `*SLA:* ${slaEmoji} ${slaStatus}`
                     }
                 ]
