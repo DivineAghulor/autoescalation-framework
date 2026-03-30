@@ -82,7 +82,7 @@ router.post('/email', async (req, res) => {
                 if (attachment.content_type && attachment.content_type.startsWith('image/')) {
                     try {
                         // Download attachment content from Resend
-                        const attachmentData = await resend.attachments.get(attachment.id);
+                        const attachmentData = await resend.attachments.get(attachment.id, email_id);
                         
                         // Upload to Supabase Storage
                         const fileName = `${Date.now()}-${attachment.filename}`;
