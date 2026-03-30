@@ -31,3 +31,5 @@ tmp/
 .DS_Store
 *.pem
 *.lock
+codegen_instructions.md
+server/utils/rand.json
