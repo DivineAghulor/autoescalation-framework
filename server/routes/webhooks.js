@@ -193,37 +193,66 @@ router.post('/email', async (req, res) => {
  */
 router.post('/slack', async (req, res) => {
     try {
-        // Verify Slack signature
-        const timestamp = req.headers['x-slack-request-timestamp'];
+        // 1. req.body is a Buffer thanks to express.raw(). 
+        // Convert it to a UTF-8 string to get the exact raw payload Slack sent.
+        const rawBodyStr = req.body.toString('utf8');
+
         const signature = req.headers['x-slack-signature'];
-        const body = req.rawBody || JSON.stringify(req.body);
+        const timestamp = req.headers['x-slack-request-timestamp'];
+        const slackSecret = process.env.SLACK_SIGNING_SECRET;
 
-        const baseString = `v0:${timestamp}:${body}`;
-        const hmac = crypto.createHmac('sha256', process.env.SLACK_SIGNING_SECRET);
-        hmac.update(baseString);
-        const expectedSignature = `v0=${hmac.digest('hex')}`;
-
-        if (signature !== expectedSignature) {
-            return res.status(401).json({ error: 'Invalid signature' });
+        // 2. Prevent Replay Attacks (Check if request is > 5 mins old)
+        const timeNow = Math.floor(Date.now() / 1000);
+        if (Math.abs(timeNow - timestamp) > 300) {
+            return res.status(401).send('Request is too old. Possible replay attack.');
         }
 
-        const payload = JSON.parse(req.body.payload);
-        const { type, actions, user, trigger_id } = payload;
+        // 3. Construct the base string using the raw string
+        const sigBaseString = `v0:${timestamp}:${rawBodyStr}`;
 
-        if (type !== 'block_actions') {
-            return res.status(200).json({ message: 'Ignored' });
+        // 4. Hash the base string using your Signing Secret
+        const mySignature = 'v0=' + crypto
+            .createHmac('sha256', slackSecret)
+            .update(sigBaseString, 'utf8')
+            .digest('hex');
+
+        // 5. Compare signatures safely to prevent timing attacks
+        const trusted = Buffer.from(mySignature, 'ascii');
+        const untrusted = Buffer.from(signature, 'ascii');
+        
+        if (trusted.length !== untrusted.length || !crypto.timingSafeEqual(trusted, untrusted)) {
+            return res.status(401).send('Invalid signature');
+        }
+
+        // --- VERIFICATION PASSED ---
+        
+        // 6. Slack expects an immediate 200 OK before you do heavy processing
+        res.status(200).send(''); 
+
+        // 7. Parse the URL-encoded string to extract the 'payload' JSON
+        const parsedBody = new URLSearchParams(rawBodyStr);
+        const payloadStr = parsedBody.get('payload');
+        
+        if (!payloadStr) {
+            return; // Not an interactive payload
+        }
+
+        const payload = JSON.parse(payloadStr);
+        const { type, actions, user } = payload;
+
+        if (type !== 'block_actions' || !actions || actions.length === 0) {
+            return; 
         }
 
         const action = actions[0];
         const issueId = action.value;
 
-        // Handle different actions
+        // Handle different actions asynchronously
         switch (action.action_id) {
             case 'acknowledge_issue':
                 await handleAcknowledge(issueId, user.id);
                 break;
             case 'change_severity':
-                // For simplicity, cycle through severities
                 await handleChangeSeverity(issueId);
                 break;
             case 'mark_resolved':
@@ -233,10 +262,12 @@ router.post('/slack', async (req, res) => {
                 console.warn(`Unknown action: ${action.action_id}`);
         }
 
-        res.status(200).json({ message: 'Action processed' });
     } catch (error) {
         console.error('Error processing Slack webhook:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        // Only send a 500 if we haven't already sent the 200 OK
+        if (!res.headersSent) {
+            res.status(500).send('Internal server error');
+        }
     }
 });
 
