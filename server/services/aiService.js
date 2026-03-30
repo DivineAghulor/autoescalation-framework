@@ -1,6 +1,20 @@
 import { genAI, supabase } from '../index.js';
 
 /**
+ * Helper function to fetch an image URL and convert it to Gemini's inlineData format
+ */
+async function urlToGenerativePart(url) {
+    const response = await fetch(url);
+    const buffer = await response.arrayBuffer();
+    return {
+        inlineData: {
+            data: Buffer.from(buffer).toString("base64"),
+            mimeType: response.headers.get("content-type") || "image/jpeg",
+        },
+    };
+}
+
+/**
  * Classifies an issue using Google Gemini AI
  * @param {string} text - The issue description text
  * @param {string[]} imageUrls - Array of image URLs (if any)
@@ -15,42 +29,61 @@ export async function classifyIssue(text, imageUrls = []) {
         const teamNames = teams.map(t => t.name).join(', ');
         const featureList = features.map(f => `${f.name} (${f.teams.name})`).join(', ');
 
-        // Prepare the prompt
+        // Prepare the optimized prompt
         const prompt = `
-You are an AI assistant that classifies customer support issues for a fintech company.
+You are an expert technical triage agent for a fintech company. Your task is to analyze customer support issues and classify them accurately to ensure fast routing.
 
-Available teams: ${teamNames}
+### Reference Data
+- Available Teams: [${teamNames}]
+- Available Features (mapped by team): [${featureList}]
 
-Available features by team:
-${featureList}
+### Severity Rubric
+- CRITICAL: System-wide outages, widespread financial loss, or severe security breaches.
+- HIGH: Individual user completely blocked from core financial flows (e.g., cannot transfer funds, account locked).
+- MEDIUM: Non-blocking bugs, degraded performance, or workflow friction.
+- LOW: Cosmetic issues, feature requests, or general "how-to" inquiries.
 
-Analyze the following issue description and classify it. Return a JSON object with the following structure:
-{
-  "team": "one of the available teams",
-  "feature": "one of the available features for that team",
-  "severity": "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
-  "title": "a short summary title (max 100 characters)",
-  "confidence": 0.0 to 1.0 (decimal)
-}
+### Issue Details
+Description: ${text}
 
-Issue description: ${text}
-
-${imageUrls.length > 0 ? `Screenshots: ${imageUrls.join(', ')}` : ''}
-
-Respond only with valid JSON, no additional text.
+Analyze the issue and return a JSON classification. Ensure the "feature" you select strictly belongs to the "team" you select.
 `;
 
-        // Use Gemini to classify
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        console.log('AI response:', response.text());
-        const classification = JSON.parse(response.text());
+        // Process image URLs into Gemini Part objects
+        const imageParts = await Promise.all(imageUrls.map(urlToGenerativePart));
 
-        // Validate the response
-        if (!classification.team || !classification.feature || !classification.severity || !classification.title || typeof classification.confidence !== 'number') {
-            throw new Error('Invalid classification response from AI');
-        }
+        // Combine text prompt and image parts into the content array
+        const contents = [prompt, ...imageParts];
+
+        // Define the JSON Schema for guaranteed structural output
+        const responseSchema = {
+            type: "object",
+            properties: {
+                team: { type: "string", description: "One of the available teams" },
+                feature: { type: "string", description: "One of the available features for the selected team" },
+                severity: { type: "string", enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+                title: { type: "string", description: "A short summary title (max 100 characters)" },
+                confidence: { type: "number", description: "Confidence score from 0.0 to 1.0" }
+            },
+            required: ["team", "feature", "severity", "title", "confidence"]
+        };
+
+        const model = genAI.getGenerativeModel({ 
+            model: 'gemini-1.5-flash',
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema
+            }
+        });
+
+        // Use generateContent with the array of parts
+        const result = await model.generateContent(contents);
+        const responseText = result.response.text();
+        
+        console.log('AI response:', responseText);
+        
+        // No need to strip markdown backticks because responseMimeType guarantees pure JSON
+        const classification = JSON.parse(responseText);
 
         return classification;
     } catch (error) {
