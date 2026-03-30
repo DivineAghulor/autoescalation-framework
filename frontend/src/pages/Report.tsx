@@ -51,7 +51,7 @@ export const Report: React.FC = () => {
 
       setTimeout(() => {
         navigate('/issues');
-      }, 2000);
+      }, 1000);
     } catch (error) {
       setSubmitState('error');
       setErrorMessage(
@@ -59,7 +59,7 @@ export const Report: React.FC = () => {
       );
       setTimeout(() => {
         setSubmitState('idle');
-      }, 5000);
+      }, 3000);
     }
   };
 
